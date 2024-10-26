@@ -148,6 +148,7 @@ pipeline {
                                 env.SUBNET_ID_A = subnetIds[0]
                                 env.SUBNET_ID_B = subnetIds[1]
                                 echo "Retrieved Subnet IDs: ${env.SUBNET_ID_A}, ${env.SUBNET_ID_B}"
+                                sh 'ls -l'
                             }
                         }
                     }
@@ -156,6 +157,7 @@ pipeline {
                 stage('Terraform Setup') {
                     steps {
                         script {
+                            sh 'ls -l'
                             // Initialize Terraform
                             sh 'terraform -chdir=${WORKSPACE}/terraform init'
 
