@@ -23,7 +23,8 @@ pipeline {
             steps {
                 script {
                     echo 'Checking out code from Git...'
-                    git 'https://github.com/mariemMoula/TerraformWithK8s.git'
+                    git branch:'master', url:'https://github.com/mariemMoula/TerraformWithK8s.git'
+                    sh 'tree'
                 }
             }
         }
@@ -154,7 +155,7 @@ pipeline {
                                 env.SUBNET_ID_A = subnetIds[0]
                                 env.SUBNET_ID_B = subnetIds[1]
                                 echo "Retrieved Subnet IDs: ${env.SUBNET_ID_A}, ${env.SUBNET_ID_B}"
-                                sh 'tree'
+
                             }
                         }
                     }
@@ -163,7 +164,7 @@ pipeline {
                 stage('Terraform Setup') {
                     steps {
                         script {
-                            sh 'tree'
+
                             sh 'ls -al ${WORKSPACE}/terraform '
                             // Initialize Terraform
                             sh 'terraform -chdir=${WORKSPACE}/terraform init'
