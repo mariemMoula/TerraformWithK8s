@@ -10,7 +10,7 @@ pipeline {
         clusterName = 'my_Kubernetes'
         region = 'us-east-1'
         namespace = 'kubernetes-namespace'
-        terraformDir = 'terraform'
+        terraformDir = 'terraform'  // Ensure this points to your Terraform config directory
     }
 
     stages {
@@ -124,14 +124,13 @@ pipeline {
             steps {
                 script {
                     echo 'Setting up Terraform...'
-                    // Initialize Terraform
-                    sh 'terraform init'
-
-                    // Validate Terraform configuration files
-                    sh 'terraform validate'
-
-                    // Apply the configuration changes
-                    sh 'terraform apply -auto-approve'
+                    dir(terraformDir) {  // Ensure this points to your Terraform config directory
+                        sh 'pwd'  // Print the current directory
+                        sh 'ls -al'  // List all files in the directory
+                        sh 'terraform init'
+                        sh 'terraform validate'
+                        sh 'terraform apply -auto-approve'
+                    }
                 }
             }
         }
@@ -165,8 +164,8 @@ pipeline {
                     withCredentials([file(credentialsId: awsCredentialsId, variable: 'AWS_CREDENTIALS_FILE')]) {
                         // Deploy to Kubernetes using the specified kubeconfig
                         sh """
-                        kubectl  apply -f deployment.yaml
-                        kubectl  apply -f service.yaml
+                        kubectl apply -f deployment.yaml
+                        kubectl apply -f service.yaml
                         """
                     }
                 }
