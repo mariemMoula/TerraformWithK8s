@@ -14,6 +14,11 @@ pipeline {
     }
 
     stages {
+    stage('Cleanup') {
+        steps {
+            cleanWs()
+        }
+    }
         stage('Checkout Git') {
             steps {
                 script {
@@ -157,7 +162,7 @@ pipeline {
                 stage('Terraform Setup') {
                     steps {
                         script {
-                            sh 'tree'
+                            sh 'ls -al ${WORKSPACE}/terraform in your pipeline before running terraform init'
                             // Initialize Terraform
                             sh 'terraform -chdir=${WORKSPACE}/terraform init'
 
