@@ -24,18 +24,6 @@ pipeline {
                 script {
                     echo 'Checking out code from Git...'
                     git branch:'master', url:'https://github.com/mariemMoula/TerraformWithK8s.git'
-                    sh 'tree'
-                }
-            }
-        }
-
-        stage('Checkout Terraform Repo') {
-            steps {
-                script {
-                    echo 'Cloning Terraform repository...'
-                    dir(terraformDir) {
-                        git 'https://github.com/mariemMoula/TerraformWithK8s.git'
-                    }
                 }
             }
         }
@@ -155,7 +143,6 @@ pipeline {
                                 env.SUBNET_ID_A = subnetIds[0]
                                 env.SUBNET_ID_B = subnetIds[1]
                                 echo "Retrieved Subnet IDs: ${env.SUBNET_ID_A}, ${env.SUBNET_ID_B}"
-
                             }
                         }
                     }
@@ -164,19 +151,17 @@ pipeline {
                 stage('Terraform Setup') {
                     steps {
                         script {
-
-                            sh 'ls -al ${WORKSPACE}/terraform '
                             // Initialize Terraform
-                            sh 'terraform -chdir=${WORKSPACE}/terraform init'
+                            sh 'terraform -chdir=terraform init'
 
                             // Validate Terraform configuration files
-                            sh 'terraform -chdir=${WORKSPACE}/terraform validate'
+                            sh 'terraform -chdir=terraform validate'
 
                             // Apply the configuration changes
                             // sh 'terraform -chdir=terraform apply -auto-approve -var aws_region=${region} -var cluster_name=${clusterName}'
 
                             sh """
-                                terraform -chdir=${WORKSPACE}/terraform apply -auto-approve \
+                                terraform -chdir=terraform apply -auto-approve \
                                     -var aws_region=${region} \
                                     -var cluster_name=${clusterName} \
                                     -var role_arn=${env.ROLE_ARN} \
