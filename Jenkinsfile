@@ -85,7 +85,7 @@ pipeline {
             steps {
                 script {
                     echo 'Building Docker image...'
-                    dockerImage = docker.build("${registry}:${BUILD_NUMBER}")
+                    dockerImage = docker.build("${registry}:latest")
                 }
             }
         }
@@ -94,7 +94,7 @@ pipeline {
             steps {
                 script {
                     echo 'Deploying Docker image to Docker Hub...'
-                    docker.withRegistry('https://index.docker.io/v1/', registryCredential) {
+                    docker.withRegistry('https://registry.hub.docker.com', registryCredential) {
                         dockerImage.push()
                     }
                 }
