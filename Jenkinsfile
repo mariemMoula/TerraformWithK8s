@@ -76,7 +76,7 @@ pipeline {
             steps {
                 script {
                     echo 'Publishing artifacts to Nexus...'
-                    sh 'mvn deploy -DaltDeploymentRepository=nexus-releases::default::http://nexus:8081/repository/maven-releases/'
+                    sh 'mvn deploy'
                 }
             }
         }

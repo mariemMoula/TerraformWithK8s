@@ -10,7 +10,7 @@
 	</parent>
 	<groupId>tn.esprit.spring</groupId>
 	<artifactId>docker-spring-boot</artifactId>
-	<version>0.0.3-RELEASE</version>
+	<version>0.0.3-SNAPSHOT</version>
 	<packaging>war</packaging>
 	<name>docker-spring-boot</name>
 	<description>docker-spring-boot</description>
@@ -94,12 +94,12 @@
     <repository>
         <id>deploymentRepo</id>
         <name>Nexus Repository Releases</name>
-        <url>http://localhost:8081/repository/maven-releases/</url>
+        <url>http://nexus:8081/repository/maven-releases/</url>
     </repository>
     <snapshotRepository>
         <id>deploymentRepo</id>
         <name>Nexus Repository Snapshots</name>
-        <url>http://localhost:8081/repository/maven-snapshots/</url>
+        <url>http://nexus:8081/repository/maven-snapshots/</url>
     </snapshotRepository>
 </distributionManagement>
 </project>
