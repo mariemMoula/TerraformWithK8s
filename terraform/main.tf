@@ -55,6 +55,12 @@ resource "aws_security_group" "eks_worker_sg" {
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
+  ingress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "tcp"
+    security_groups = [aws_security_group.eks_cluster_sg.id]  # Allow traffic from cluster security group
+  }
 
   egress {
     from_port   = 0
