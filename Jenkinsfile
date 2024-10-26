@@ -10,7 +10,7 @@ pipeline {
         clusterName = 'my_Kubernetes'
         region = 'us-east-1'
         namespace = 'kubernetes-namespace'
-        terraformDir = 'terraform'  // Ensure this points to your Terraform config directory
+        terraformDir = 'terraform'  // Ensure this points to your Terraform directory
     }
 
     stages {
@@ -121,36 +121,45 @@ pipeline {
         }
 
         stage('Terraform Setup') {
-            steps {
-                script {
-                    echo 'Setting up Terraform...'
-                    dir(terraformDir) {  // Ensure this points to your Terraform config directory
-                        sh 'pwd'  // Print the current directory
-                        sh 'ls -al'  // List all files in the directory
-                        sh 'terraform init'
-                        sh 'terraform validate'
-                        sh 'terraform apply -auto-approve'
-                    }
-                }
+    steps {
+        script {
+            echo 'Setting up Terraform...'
+            dir(terraformDir) {
+                sh '''
+                    # Print the current directory
+                    pwd &&
+
+                    # List files in the current directory
+                    ls -al &&
+
+                    # Initialize Terraform
+                    terraform init &&
+
+                    # Validate Terraform configuration files
+                    terraform validate &&
+
+                    # Apply the configuration changes
+                    terraform apply -auto-approve
+                '''
             }
         }
+    }
+}
+
 
         stage('Configure Kubernetes') {
             steps {
                 script {
                     echo 'Configuring kubectl with AWS IAM...'
                     withCredentials([file(credentialsId: awsCredentialsId, variable: 'AWS_CREDENTIALS_FILE')]) {
-                        // Load AWS credentials
                         def awsCredentials = readFile(AWS_CREDENTIALS_FILE).trim().split("\n")
                         env.AWS_ACCESS_KEY_ID = awsCredentials.find { it.startsWith("aws_access_key_id") }.split("=")[1].trim()
                         env.AWS_SECRET_ACCESS_KEY = awsCredentials.find { it.startsWith("aws_secret_access_key") }.split("=")[1].trim()
                         env.AWS_SESSION_TOKEN = awsCredentials.find { it.startsWith("aws_session_token") }?.split("=")[1]?.trim()
 
-                        // Run the update kubeconfig command
                         def result = sh(script: "aws eks --region ${region} update-kubeconfig --name ${clusterName}", returnStdout: true).trim()
                         echo "Kubeconfig output: ${result}"
 
-                        // Optional: Check the current context
                         sh 'kubectl config current-context'
                     }
                 }
@@ -162,7 +171,6 @@ pipeline {
                 script {
                     echo 'Deploying Docker image to AWS Kubernetes...'
                     withCredentials([file(credentialsId: awsCredentialsId, variable: 'AWS_CREDENTIALS_FILE')]) {
-                        // Deploy to Kubernetes using the specified kubeconfig
                         sh """
                         kubectl apply -f deployment.yaml
                         kubectl apply -f service.yaml
