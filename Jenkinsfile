@@ -111,6 +111,7 @@ pipeline {
                     steps {
                         withCredentials([file(credentialsId: awsCredentialsId, variable: 'AWS_CREDENTIALS_FILE')]) {
                             script {
+                                sh"tree"
                                 def awsCredentials = readFile(AWS_CREDENTIALS_FILE).trim().split("\n")
                                 env.AWS_ACCESS_KEY_ID = awsCredentials.find { it.startsWith("aws_access_key_id") }.split("=")[1].trim()
                                 env.AWS_SECRET_ACCESS_KEY = awsCredentials.find { it.startsWith("aws_secret_access_key") }.split("=")[1].trim()
@@ -162,7 +163,8 @@ pipeline {
                 stage('Terraform Setup') {
                     steps {
                         script {
-                            sh 'ls -al ${WORKSPACE}/terraform in your pipeline before running terraform init'
+                            sh 'tree'
+                            sh 'ls -al ${WORKSPACE}/terraform '
                             // Initialize Terraform
                             sh 'terraform -chdir=${WORKSPACE}/terraform init'
 
