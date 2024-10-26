@@ -157,15 +157,16 @@ pipeline {
                     steps {
                         script {
                             // Initialize Terraform
-                            sh 'terraform -chdir=terraform init'
+                            sh 'terraform -chdir=${WORKSPACE}/terraform init'
 
                             // Validate Terraform configuration files
-                            sh 'terraform -chdir=terraform validate'
+                            sh 'terraform -chdir=${WORKSPACE}/terraform validate'
 
                             // Apply the configuration changes
                             // sh 'terraform -chdir=terraform apply -auto-approve -var aws_region=${region} -var cluster_name=${clusterName}'
+
                             sh """
-                                terraform -chdir=terraform apply -auto-approve \
+                                terraform -chdir=${WORKSPACE}/terraform apply -auto-approve \
                                     -var aws_region=${region} \
                                     -var cluster_name=${clusterName} \
                                     -var role_arn=${env.ROLE_ARN} \
