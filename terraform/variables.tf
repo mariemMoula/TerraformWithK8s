@@ -33,3 +33,8 @@ variable "vpc_cidr" {
   type        = string
   default     = "10.0.0.0/16"  # Modifiez-le selon vos besoins
 }
+variable "default_sg_id" {
+  description = "The ID of the default security group."
+  type        = string
+}
+

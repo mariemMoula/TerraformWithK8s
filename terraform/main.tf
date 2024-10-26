@@ -3,77 +3,10 @@ provider "aws" {
 }
 
 resource "aws_vpc" "my_vpc" {
-  cidr_block = var.vpc_cidr  # Utilisation de la variable pour le CIDR
+  cidr_block = var.vpc_cidr  # Using the variable for the CIDR
 }
 
-resource "aws_security_group" "eks_cluster_sg" {
-  name        = "eks-cluster-sg-${var.cluster_name}"
-  description = "Security group for EKS cluster ${var.cluster_name}"
-  vpc_id      = var.vpc_id  # Utilisation de la variable pour l'ID du VPC
-
-  ingress {
-    from_port   = 8083
-    to_port     = 8083
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  ingress {
-    from_port   = 30000
-    to_port     = 30000
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  tags = {
-    Name = "eks-cluster-sg-${var.cluster_name}"
-  }
-}
-
-resource "aws_security_group" "eks_worker_sg" {
-  name        = "eks-worker-sg-${var.cluster_name}"
-  description = "Security group for EKS worker nodes ${var.cluster_name}"
-  vpc_id      = var.vpc_id  # Utilisation de la variable pour l'ID du VPC
-
-  ingress {
-    from_port   = 8083
-    to_port     = 8083
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  ingress {
-    from_port   = 30000
-    to_port     = 30000
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-  ingress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "tcp"
-    security_groups = [aws_security_group.eks_cluster_sg.id]  # Allow traffic from cluster security group
-  }
-
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  tags = {
-    Name = "eks-worker-sg-${var.cluster_name}"
-  }
-}
-
+# Create the EKS Cluster
 resource "aws_eks_cluster" "my_cluster" {
   name     = var.cluster_name
   role_arn = var.role_arn
@@ -81,10 +14,11 @@ resource "aws_eks_cluster" "my_cluster" {
 
   vpc_config {
     subnet_ids         = var.subnet_ids
-    security_group_ids = [aws_security_group.eks_cluster_sg.id]
+    // Do not specify security_group_ids; let EKS use the default SG
   }
 }
 
+# Create the Node Group
 resource "aws_eks_node_group" "my_node_group" {
   cluster_name    = aws_eks_cluster.my_cluster.name
   node_group_name = "noeud1"
@@ -96,4 +30,41 @@ resource "aws_eks_node_group" "my_node_group" {
     max_size     = 3
     min_size     = 1
   }
+}
+
+# Data source to fetch the default security group for the EKS cluster
+data "aws_eks_cluster" "my_cluster_data" {
+  name = aws_eks_cluster.my_cluster.name
+}
+
+data "aws_security_group" "eks_cluster_sg" {
+  filter {
+    name   = "vpc-id"
+    values = [aws_vpc.my_vpc.id]
+  }
+
+  filter {
+    name   = "group-name"
+    values = ["eks-cluster-${data.aws_eks_cluster.my_cluster_data.id}"]  # Using cluster ID to find the SG
+  }
+}
+
+# Security Group Rule to Allow Ingress Traffic on Port 30000
+resource "aws_security_group_rule" "allow_ingress_30000" {
+  type              = "ingress"
+  from_port         = 30000
+  to_port           = 30000
+  protocol          = "tcp"
+  security_group_id = data.aws_security_group.eks_cluster_sg.id  # Use the ID of the EKS cluster SG
+  cidr_blocks       = ["0.0.0.0/0"]  # Allow traffic from anywhere
+}
+
+# Security Group Rule to Allow Egress Traffic on Port 30000
+resource "aws_security_group_rule" "allow_egress_30000" {
+  type              = "egress"
+  from_port         = 30000
+  to_port           = 30000
+  protocol          = "tcp"
+  security_group_id = data.aws_security_group.eks_cluster_sg.id  # Use the ID of the EKS cluster SG
+  cidr_blocks       = ["0.0.0.0/0"]  # Allow traffic to anywhere
 }
