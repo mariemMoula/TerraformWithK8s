@@ -101,50 +101,80 @@ pipeline {
             }
         }
 
-        stage('Test AWS Credentials') {
-            steps {
-                script {
-                    echo 'Testing AWS credentials...'
-                    withCredentials([file(credentialsId: awsCredentialsId, variable: 'AWS_CREDENTIALS_FILE')]) {
-                        def awsCredentials = readFile(AWS_CREDENTIALS_FILE).trim().split("\n")
-                        env.AWS_ACCESS_KEY_ID = awsCredentials.find { it.startsWith("aws_access_key_id") }.split("=")[1].trim()
-                        env.AWS_SECRET_ACCESS_KEY = awsCredentials.find { it.startsWith("aws_secret_access_key") }.split("=")[1].trim()
-                        env.AWS_SESSION_TOKEN = awsCredentials.find { it.startsWith("aws_session_token") }?.split("=")[1]?.trim()
+        // New Stage to Test AWS Credentials
+                stage('Test AWS Credentials') {
+                    steps {
+                        withCredentials([file(credentialsId: awsCredentialsId, variable: 'AWS_CREDENTIALS_FILE')]) {
+                            script {
+                                def awsCredentials = readFile(AWS_CREDENTIALS_FILE).trim().split("\n")
+                                env.AWS_ACCESS_KEY_ID = awsCredentials.find { it.startsWith("aws_access_key_id") }.split("=")[1].trim()
+                                env.AWS_SECRET_ACCESS_KEY = awsCredentials.find { it.startsWith("aws_secret_access_key") }.split("=")[1].trim()
+                                env.AWS_SESSION_TOKEN = awsCredentials.find { it.startsWith("aws_session_token") }?.split("=")[1]?.trim()
 
-                        echo "AWS Access Key ID: ${env.AWS_ACCESS_KEY_ID}"
-                        echo "AWS Credentials File Loaded"
+                                echo "AWS Access Key ID: ${env.AWS_ACCESS_KEY_ID}"
+                                // Optional: echo "AWS Session Token: ${env.AWS_SESSION_TOKEN}"
 
-                        sh 'aws sts get-caller-identity'
+                                echo "AWS Credentials File Loaded"
+
+                                // Test AWS Credentials
+                                sh 'aws sts get-caller-identity' // Ensure AWS CLI can access the credentials
+                            }
+                        }
                     }
                 }
-            }
-        }
 
-        stage('Terraform Setup') {
-    steps {
-        script {
-            echo 'Setting up Terraform...'
-            dir(terraformDir) {
-                sh '''
-                    # Print the current directory
-                    pwd &&
+                stage('Retrieve AWS Resources') {
+                    steps {
+                        withCredentials([file(credentialsId: awsCredentialsId, variable: 'AWS_CREDENTIALS_FILE')]) {
+                            script {
+                                def awsCredentials = readFile(AWS_CREDENTIALS_FILE).trim().split("\n")
+                                env.AWS_ACCESS_KEY_ID = awsCredentials.find { it.startsWith("aws_access_key_id") }.split("=")[1].trim()
+                                env.AWS_SECRET_ACCESS_KEY = awsCredentials.find { it.startsWith("aws_secret_access_key") }.split("=")[1].trim()
+                                env.AWS_SESSION_TOKEN = awsCredentials.find { it.startsWith("aws_session_token") }?.split("=")[1]?.trim()
 
-                    # List files in the current directory
-                    ls -al &&
+                                echo "AWS Access Key ID: ${env.AWS_ACCESS_KEY_ID}"
+                                echo "AWS Credentials File Loaded"
 
-                    # Initialize Terraform
-                    terraform init &&
+                                // Retrieve role_arn
+                                env.ROLE_ARN = sh(script: "aws iam list-roles --query 'Roles[?RoleName==`LabRole`].Arn' --output text", returnStdout: true).trim()
+                                echo "Retrieved Role ARN: ${env.ROLE_ARN}"
 
-                    # Validate Terraform configuration files
-                    terraform validate &&
+                                // Retrieve VPC ID
+                                env.VPC_ID = sh(script: "aws ec2 describe-vpcs --region ${region} --query 'Vpcs[0].VpcId' --output text", returnStdout: true).trim()
+                                echo "Retrieved VPC ID: ${env.VPC_ID}"
 
-                    # Apply the configuration changes
-                    terraform apply -auto-approve
-                '''
-            }
-        }
-    }
-}
+                                // Retrieve Subnet IDs
+                                def subnetIds = sh(script: "aws ec2 describe-subnets --region ${region} --filters Name=vpc-id,Values=${env.VPC_ID} --query 'Subnets[0:2].SubnetId' --output text", returnStdout: true).trim().split()
+                                env.SUBNET_ID_A = subnetIds[0]
+                                env.SUBNET_ID_B = subnetIds[1]
+                                echo "Retrieved Subnet IDs: ${env.SUBNET_ID_A}, ${env.SUBNET_ID_B}"
+                            }
+                        }
+                    }
+                }
+
+                stage('Terraform Setup') {
+                    steps {
+                        script {
+                            // Initialize Terraform
+                            sh 'terraform -chdir=terraform init'
+
+                            // Validate Terraform configuration files
+                            sh 'terraform -chdir=terraform validate'
+
+                            // Apply the configuration changes
+                            // sh 'terraform -chdir=terraform apply -auto-approve -var aws_region=${region} -var cluster_name=${clusterName}'
+                            sh """
+                                terraform -chdir=terraform apply -auto-approve \
+                                    -var aws_region=${region} \
+                                    -var cluster_name=${clusterName} \
+                                    -var role_arn=${env.ROLE_ARN} \
+                                    -var vpc_id=${env.VPC_ID} \
+                                    -var 'subnet_ids=[\"${env.SUBNET_ID_A}\",\"${env.SUBNET_ID_B}\"]'
+                            """
+                        }
+                    }
+                }
 
 
         stage('Configure Kubernetes') {
