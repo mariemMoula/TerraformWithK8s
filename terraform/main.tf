@@ -29,7 +29,7 @@ resource "aws_eks_node_group" "my_node_group" {
 
 # Add a rule to allow all traffic on port 30000 in the default security group created by the EKS cluster
 resource "aws_security_group_rule" "allow_port_30000" {
-  security_group_id = aws_eks_cluster.my_cluster.vpc_config.0.security_group_ids.0
+  security_group_id = aws_eks_cluster.my_cluster.vpc_config.0.cluster_security_group_id
   type              = "ingress"
   from_port         = 30000
   to_port           = 30000
