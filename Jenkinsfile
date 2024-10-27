@@ -127,10 +127,6 @@ pipeline {
                     steps {
                         withCredentials([file(credentialsId: awsCredentialsId, variable: 'AWS_CREDENTIALS_FILE')]) {
                             script {
-                                def awsCredentials = readFile(AWS_CREDENTIALS_FILE).trim().split("\n")
-                                env.AWS_ACCESS_KEY_ID = awsCredentials.find { it.startsWith("aws_access_key_id") }.split("=")[1].trim()
-                                env.AWS_SECRET_ACCESS_KEY = awsCredentials.find { it.startsWith("aws_secret_access_key") }.split("=")[1].trim()
-                                env.AWS_SESSION_TOKEN = awsCredentials.find { it.startsWith("aws_session_token") }?.split("=")[1]?.trim()
 
                                 echo "AWS Access Key ID: ${env.AWS_ACCESS_KEY_ID}"
                                 echo "AWS Credentials File Loaded"
@@ -142,6 +138,7 @@ pipeline {
                                 // Retrieve VPC ID
                                 env.VPC_ID = sh(script: "aws ec2 describe-vpcs --region ${region} --query 'Vpcs[0].VpcId' --output text", returnStdout: true).trim()
                                 echo "Retrieved VPC ID: ${env.VPC_ID}"
+
 
                                 // Retrieve Subnet IDs
                                 def subnetIds = sh(script: "aws ec2 describe-subnets --region ${region} --filters Name=vpc-id,Values=${env.VPC_ID} Name=availability-zone,Values=us-east-1a,us-east-1b --query 'Subnets[*].SubnetId' --output text", returnStdout: true).trim().split()
@@ -180,18 +177,12 @@ pipeline {
         stage('Configure Kubernetes') {
             steps {
                 script {
-                    echo 'Configuring kubectl with AWS IAM...'
-                    withCredentials([file(credentialsId: awsCredentialsId, variable: 'AWS_CREDENTIALS_FILE')]) {
-                        def awsCredentials = readFile(AWS_CREDENTIALS_FILE).trim().split("\n")
-                        env.AWS_ACCESS_KEY_ID = awsCredentials.find { it.startsWith("aws_access_key_id") }.split("=")[1].trim()
-                        env.AWS_SECRET_ACCESS_KEY = awsCredentials.find { it.startsWith("aws_secret_access_key") }.split("=")[1].trim()
-                        env.AWS_SESSION_TOKEN = awsCredentials.find { it.startsWith("aws_session_token") }?.split("=")[1]?.trim()
 
                         def result = sh(script: "aws eks --region ${region} update-kubeconfig --name ${clusterName}", returnStdout: true).trim()
                         echo "Kubeconfig output: ${result}"
 
                         sh 'kubectl config current-context'
-                    }
+
                 }
             }
         }
