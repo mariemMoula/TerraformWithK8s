@@ -112,7 +112,12 @@ pipeline {
                                 echo "AWS Credentials File Loaded"
 
                                 // Test AWS Credentials
-                                sh 'aws sts get-caller-identity' // Ensure AWS CLI can access the credentials
+                                sh '''
+                                aws configure set aws_access_key_id $AWS_ACCESS_KEY_ID
+                                aws configure set aws_secret_access_key $AWS_SECRET_ACCESS_KEY
+                                aws configure set aws_session_token $AWS_SESSION_TOKEN
+                                aws sts get-caller-identity
+                                ''' // Ensure AWS CLI can access the credentials
                             }
                         }
                     }
