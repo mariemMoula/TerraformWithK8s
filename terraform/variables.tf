@@ -21,9 +21,3 @@ variable "role_arn" {
   type        = string
   default     = "arn:aws:iam::417738508223:role/LabRole"
 }
-
-variable "vpc_id" {
-  description = "ID of the VPC for the EKS cluster"
-  type        = string
-  default     = "vpc-04269adca5e5b449c"
-}
